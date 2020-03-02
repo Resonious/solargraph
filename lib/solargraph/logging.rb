@@ -4,7 +4,7 @@ require 'logger'
 
 module Solargraph
   module Logging
-    DEFAULT_LOG_LEVEL = Logger::WARN
+    DEFAULT_LOG_LEVEL = Logger::DEBUG
 
     LOG_LEVELS = {
       'warn' => Logger::WARN,
@@ -12,7 +12,18 @@ module Solargraph
       'debug' => Logger::DEBUG
     }
 
-    @@logger = Logger.new(STDERR, level: DEFAULT_LOG_LEVEL)
+    module MakeFileFlushOnWrite
+      def write(*)
+        result = super
+        flush
+        result
+      end
+    end
+
+    nigels_file = File.open('/home/nigel/DEBUG.LOG', File::WRONLY | File::APPEND)
+    nigels_file.singleton_class.prepend MakeFileFlushOnWrite
+
+    @@logger = Logger.new(nigels_file, level: DEFAULT_LOG_LEVEL)
     @@logger.formatter = proc do |severity, datetime, progname, msg|
       "[#{severity}] #{msg}\n"
     end

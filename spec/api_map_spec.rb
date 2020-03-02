@@ -1,5 +1,7 @@
 require 'tmpdir'
 
+require 'pry'
+
 describe Solargraph::ApiMap do
   before :all do
     @api_map = Solargraph::ApiMap.new
@@ -7,6 +9,7 @@ describe Solargraph::ApiMap do
 
   it "returns core methods" do
     pins = @api_map.get_methods('String')
+    binding.pry
     expect(pins.map(&:path)).to include('String#upcase')
   end
 

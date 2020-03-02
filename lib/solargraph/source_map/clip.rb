@@ -33,6 +33,13 @@ module Solargraph
         end
       end
 
+      # @return [String]
+      def local_identifier
+        me = context_pin.namespace
+        local_var = cursor.chain.links[0].word
+        "#{me}%#{local_var}"
+      end
+
       # @return [Array<Pin::Base>]
       def signify
         return [] unless cursor.argument?

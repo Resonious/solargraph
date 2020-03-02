@@ -1,6 +1,8 @@
 require 'tmpdir'
 require 'yard'
 
+require 'pry'
+
 describe Solargraph::Library do
   it "does not open created files in the workspace" do
     Dir.mktmpdir do |temp_dir_path|

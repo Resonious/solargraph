@@ -77,7 +77,14 @@ module Solargraph
       # @param api_map [ApiMap]
       def typify api_map
         return return_type.qualify(api_map, closure.context.namespace) unless return_type.undefined?
-        closure.is_a?(Pin::Block) ? typify_block_param(api_map) : typify_method_param(api_map)
+        runtime_type = infer_type_from_runtime api_map.runtime_param_types
+        if !runtime_type.undefined?
+          runtime_type
+        elsif closure.is_a?(Pin::Block)
+          typify_block_param(api_map)
+        else
+          typify_method_param(api_map)
+        end
       end
 
       def documentation
@@ -89,6 +96,13 @@ module Solargraph
       def try_merge! pin
         return false unless super && closure == pin.closure
         true
+      end
+
+      def infer_type_from_tag
+        found = param_tag
+        return if found.nil? || found.types.nil?
+
+        ComplexType.try_parse(*found.types)
       end
 
       def probe api_map

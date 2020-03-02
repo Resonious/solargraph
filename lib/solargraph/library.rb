@@ -234,11 +234,38 @@ module Solargraph
             a.range.start.line <=> b.range.start.line
           end)
         end
+        if pin.respond_to?(:path)
+          found = api_map.runtime_references[pin.path].map do |name_and_line|
+            /\A(?<filename>.+):(?<lineno>\d+)\z/ =~ name_and_line
+            next if filename.nil? || lineno.nil?
+            lineno = lineno.to_i - 1
+            column_start, column_end = column_range(filename, lineno)
+            Solargraph::Location.new(
+              File.join(workspace.directory, filename),
+              Solargraph::Range.from_to(
+                lineno, column_start, lineno, column_end
+              )
+            )
+          end.compact
+          logger.info "REF LOOKUP: #{pin.path} FOUND #{found.size} RUNTIME RESULTS"
+          result.concat(found.sort do |a, b|
+            a.range.start.line <=> b.range.start.line
+          end)
+        end
       end
       result.uniq
     end
 
-    # Get the pins at the specified location or nil if the pin does not exist.
+    def column_range(filename, line)
+      File.open(filename) do |f|
+        text = f.each.take(line).last
+        [text.index(/\S/), text.size - 1]
+      end
+    rescue Errno::ENOENT
+      [0, 0]
+    end
+
+    # Get the pin at the specified location or nil if the pin does not exist.
     #
     # @param location [Location]
     # @return [Array<Solargraph::Pin::Base>]

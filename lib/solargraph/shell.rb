@@ -8,7 +8,7 @@ module Solargraph
 
     map %w[--version -v] => :version
 
-    desc "--version, -v", "Print the version"
+    desc "--version, -v", "Print the version OO BABY"
     def version
       puts Solargraph::VERSION
     end

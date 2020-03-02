@@ -223,6 +223,9 @@ module Solargraph
           type = chain.infer(api_map, self, clip.locals)
           result.push type unless type.undefined?
         end
+        # TODO: (Nigel) account for generated things?
+        runtime_types = api_map.runtime_return_types[path] || []
+        result += runtime_types.map { |type| Struct.new(:tag).new(type) }
         result.push ComplexType::NIL if has_nil
         return ComplexType::UNDEFINED if result.empty?
         ComplexType.try_parse(*result.map(&:tag).uniq)

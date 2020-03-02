@@ -27,6 +27,8 @@ module Solargraph
       @source_map_hash = {}
       @cache = Cache.new
       @method_alias_stack = []
+      @workspace_path = nil
+      @mutex = Mutex.new
       index pins
     end
 
@@ -100,9 +102,9 @@ module Solargraph
       end
       # implicit.merge Convention.for_global(self)
       local_path_hash.clear
+      workspace_path = Pathname.new(bench.workspace.directory)
       unless bench.workspace.require_paths.empty?
         file_keys = new_map_hash.keys
-        workspace_path = Pathname.new(bench.workspace.directory)
         reqs.delete_if do |r|
           bench.workspace.require_paths.any? do |base|
             pn = workspace_path.join(base, "#{r}.rb").to_s
@@ -125,6 +127,7 @@ module Solargraph
       @source_map_hash = new_map_hash
       @store = new_store
       @unresolved_requires = yard_map.unresolved_requires
+      @workspace_path = workspace_path
       workspace_filenames.clear
       workspace_filenames.concat bench.workspace.filenames
       @rebindable_method_names = nil
@@ -144,6 +147,27 @@ module Solargraph
     # @return [Hash{String => String}]
     def local_path_hash
       @local_paths ||= {}
+    end
+
+    # @return [Hash{String => Array<String>}]
+    def runtime_param_types
+      @mutex.synchronize {
+        @runtime_param_types ||= analysis_hash('locals')
+      }
+    end
+
+    # @return [Hash{String => Array<String>}]
+    def runtime_return_types
+      @mutex.synchronize {
+        @runtime_return_types ||= analysis_hash('returns')
+      }
+    end
+
+    # @return [Hash{String => Array<String>}]
+    def runtime_references
+      @mutex.synchronize {
+        @runtime_references ||= analysis_hash('uses')
+      }
     end
 
     # @param filename [String]
@@ -753,6 +777,24 @@ module Solargraph
         attribute: origin.attribute?
       }
       Pin::Method.new **args
+    end
+
+    # @param dir [String]
+    # @return [Hash{String => Array<String>}]
+    def analysis_hash dir
+      return {} if @workspace_path.nil?
+      full_dir = File.join(@workspace_path, '.exposure', dir)
+      Class.new do
+        define_method :[] do |identifier|
+          begin
+            IO.readlines(File.join(full_dir, identifier), chomp: true)
+              .reject(&:empty?)
+          rescue Errno::ENOENT => e
+            Solargraph.logger.warn e.message
+            []
+          end
+        end
+      end.new
     end
   end
 end
