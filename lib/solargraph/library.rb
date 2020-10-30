@@ -248,9 +248,16 @@ module Solargraph
             )
           end.compact
           logger.info "REF LOOKUP: #{pin.path} FOUND #{found.size} RUNTIME RESULTS"
-          result.concat(found.sort do |a, b|
-            a.range.start.line <=> b.range.start.line
-          end)
+          sorted = found.sort { |a, b| a.range.start.line <=> b.range.start.line }
+          # runtime refs do not have accurate column info so only add them if there
+          # are no entries on the same row.
+          sorted.each do |loc|
+            line = loc.range.start.line
+            if result.none? { |r| r.range.start.line == line }
+              result << loc
+              logger.info "ADDING RUNTIME REF #{loc.filename}:#{line}"
+            end
+          end
         end
       end
       result.uniq
