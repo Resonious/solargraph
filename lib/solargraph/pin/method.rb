@@ -225,6 +225,8 @@ module Solargraph
         end
         # TODO: (Nigel) account for generated things?
         runtime_types = api_map.runtime_return_types[path] || []
+        Solargraph.logger.info \
+          "runtime_return_types[#{path}] --> #{runtime_types.inspect}"
         result += runtime_types.map { |type| Struct.new(:tag).new(type) }
         result.push ComplexType::NIL if has_nil
         return ComplexType::UNDEFINED if result.empty?
